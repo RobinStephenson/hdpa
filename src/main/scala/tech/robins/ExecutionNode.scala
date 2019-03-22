@@ -50,6 +50,8 @@ class ExecutionNode(
     val resourceFetchResults = task.requiredResources.map(getOrFetchResource)
     val totalResourceAccessDuration = resourceFetchResults.map(_.fetchDuration).reduce(_ + _)
     val executionDuration = calculateExecutionTime(task.executionUnits)
+    log.info(s"Task resource access duration: $totalResourceAccessDuration, execution duration: $executionDuration")
+    log.info(s"Task exec units: ${task.executionUnits}, node exec units per min: $executionUnitsPerMinute")
     val totalDuration = totalResourceAccessDuration + executionDuration
     if (realTimeDelays) {
       log.info(s"Simulating real time delay of $totalDuration")

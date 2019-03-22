@@ -1,5 +1,5 @@
 package tech.robins
-import akka.actor.{Actor, ActorSystem}
+import akka.actor.ActorSystem
 import tech.robins.SimulationController.StartSimulation
 
 import scala.io.StdIn

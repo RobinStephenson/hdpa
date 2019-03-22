@@ -45,7 +45,6 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
 
   private def notifySimulationControllerIfAllTasksCompleted(): Unit =
     if (workGenerationComplete && pendingTasks.isEmpty) {
-      log.info("Work generation and all tasks completed. Informing simulation controller that simulation is complete.")
       workGenerationReport match {
         case None => throw new IllegalStateException("WorkGenerationReport must be defined")
         case Some(workGenReport) =>
