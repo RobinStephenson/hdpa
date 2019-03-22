@@ -1,8 +1,9 @@
 package tech.robins
 
-import java.nio.file.{Path, Paths}
-import java.time.LocalDateTime
+import java.nio.file.Paths
+import java.time.{LocalDateTime, Duration => jDuration}
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit.NANOSECONDS
 
 import AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
 import ExecutionNode.StartRequestingTasksFromScheduler
@@ -11,11 +12,13 @@ import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.cluster.ClusterEvent._
 
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
 
 class SimulationController(simulationConfiguration: SimulationConfiguration) extends Actor with ActorLogging {
   import SimulationController._
 
   private var simulationStarted = false
+  private var simulationStartTime: Option[LocalDateTime] = None
 
   private val executionNodesWaitingForSimulationStart = mutable.Set.empty[Member]
 
@@ -50,6 +53,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
   private def startSimulation(): Unit = {
     log.info("Starting up simulation")
     simulationStarted = true
+    simulationStartTime = Some(LocalDateTime.now())
 
     workloadGenerator ! SubscribeToEndOfWorkGeneration(taskAccountant)
     workloadGenerator ! StartGeneratingWork(scheduler)
@@ -68,7 +72,10 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
     workGenerationReport: WorkGenerationReport
   ): Unit = {
     log.info("Simulation completed! Generating report and terminating system.")
-    val simulationReport = SimulationReport(simulationConfiguration, workGenerationReport, taskExecutionReports)
+    val now = LocalDateTime.now()
+    val simulationDuration = FiniteDuration(jDuration.between(simulationStartTime.get, now).toNanos, NANOSECONDS)
+    val simulationReport =
+      SimulationReport(simulationConfiguration, workGenerationReport, taskExecutionReports, simulationDuration)
     saveReport(simulationReport)
     context.system.terminate()
   }
