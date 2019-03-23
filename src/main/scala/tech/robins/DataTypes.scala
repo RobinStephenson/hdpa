@@ -3,7 +3,6 @@ package tech.robins
 import java.util.UUID
 
 import scala.concurrent.duration._
-import scala.util.Random
 
 case class Resource(id: UUID)
 
@@ -11,7 +10,7 @@ case class Task(id: UUID, requiredResources: Set[Resource], executionUnits: Doub
 
 case class TaskExecutionReport(task: Task, duration: FiniteDuration, localResources: Int, remoteResources: Int)
 
-case class WorkGenerationReport(totalTasks: Int) // TODO add total number of tasks, resources -> number of times appearing in a task
+case class WorkGenerationReport(totalTasks: Int) // TODO resources -> number of times appearing in a task
 
 case class FetchResult(resource: Resource, fetchDuration: FiniteDuration, wasLocal: Boolean)
 
@@ -31,8 +30,4 @@ object FetchResult {
   def localResourceFetch(resource: Resource): FetchResult = FetchResult(resource, localAccessTime, wasLocal = true)
 
   def remoteResourceFetch(resource: Resource): FetchResult = FetchResult(resource, remoteAccessTime, wasLocal = false)
-}
-
-case class NormalDistribution(mean: Double, standardDeviation: Double) {
-  def random: Double = Random.nextGaussian() * standardDeviation + mean
 }

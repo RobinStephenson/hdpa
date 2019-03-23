@@ -39,7 +39,7 @@ class FiftyNewResourceTasksGenerator(workGenerationConfiguration: WorkGeneration
       val newResourcesDependencies = for (_ <- Range(0, numberOfNewResources)) yield generateNewResource()
       newResourcesDependencies.foreach(encounteredResources.add)
       val allResourceDependencies = encounteredResourcesDependencies.toSet ++ newResourcesDependencies
-      val executionUnits = workGenerationConfiguration.executionUnitsDistribution.random
+      val executionUnits = workGenerationConfiguration.executionUnitsDistribution.random()
       val task = Task(UUID.randomUUID(), allResourceDependencies, executionUnits)
       log.info(s"Created new task $task")
       task
