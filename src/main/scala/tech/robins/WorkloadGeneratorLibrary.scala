@@ -3,6 +3,7 @@ import akka.actor.Props
 
 object WorkloadGeneratorLibrary {
   val propsByName: Map[String, WorkGenerationConfiguration => Props] = Map(
-    "FiftyNewResourceTasksGenerator" -> FiftyNewResourceTasksGenerator.props
+    "FiftyNewResourceTasksGenerator" -> FiftyNewResourceTasksGenerator.props,
+    "MixedNewAndOldResourceWorkloadGenerator" -> MixedNewAndOldResourceWorkloadGenerator.props
   )
 }

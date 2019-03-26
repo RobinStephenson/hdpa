@@ -8,6 +8,11 @@ case class Resource(id: UUID)
 
 case class Task(id: UUID, requiredResources: Set[Resource], executionUnits: Double)
 
+object Task {
+  def apply(requiredResources: Set[Resource], executionUnits: Double): Task =
+    Task(UUID.randomUUID(), requiredResources, executionUnits)
+}
+
 case class TaskExecutionReport(task: Task, duration: FiniteDuration, localResources: Int, remoteResources: Int)
 
 case class WorkGenerationReport(totalTasks: Int) // TODO resources -> number of times appearing in a task

@@ -4,16 +4,10 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 
 import scala.collection.mutable
 
-trait AbstractWorkloadGenerator extends Actor with ActorLogging {
+trait AbstractWorkloadGenerator extends Actor with ActorLogging { // TODO different types of work gen
   import AbstractWorkloadGenerator._
 
   private val endOfWorkSubscribers: mutable.Set[ActorRef] = mutable.Set.empty
-
-  protected def createTask(numberOfEncounteredResources: Int, numberOfNewResources: Int): Task
-
-  protected def createTaskWithNewResource: Task = createTask(0, 1)
-
-  protected def createTaskWithEncounteredResource: Task = createTask(1, 0)
 
   protected def startGeneratingWorkThenSendFinishedMessages(scheduler: ActorRef): Unit = {
     log.info("Starting work generation")

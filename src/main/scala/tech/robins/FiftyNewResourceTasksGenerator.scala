@@ -21,7 +21,7 @@ class FiftyNewResourceTasksGenerator(workGenerationConfiguration: WorkGeneration
     val totalTasks = 50
     log.info(s"Generating work for scheduler $scheduler")
     for (_ <- Range(0, 50)) {
-      val task = createTaskWithNewResource
+      val task = createTask(0, 1)
       log.info(s"Sending new task $task to scheduler")
       scheduler ! NewTaskForScheduling(task)
     }

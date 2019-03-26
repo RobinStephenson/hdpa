@@ -17,7 +17,7 @@ case class BucketDistribution(buckets: List[Bucket]) extends Distribution {
     bucket.random()
   }
 
-  private def chooseWeightedRandomBucket(): Bucket = { // TODO test
+  private def chooseWeightedRandomBucket(): Bucket = {
     val totalLikelihood = buckets.map(_.likelihood).sum
     var r = Random.nextInt(totalLikelihood - 1) + 1 // -1 + 1 because we need range to start at 1
     var chosenBucket: Bucket = null
