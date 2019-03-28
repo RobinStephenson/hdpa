@@ -40,7 +40,9 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
     if (wasPresent)
       log.info(s"Competed task $completedTask removed from pending tasks")
     else
-      log.error(s"Completed task $completedTask was not in the pending tasks queue")
+      log.warning(s"Completed task $completedTask was not in the pending tasks queue")
+    // TODO investigate errors. probably a race condition where the completion message arrives before the task accountant is told its pending
+    //Completed task Task(0e1e85da-aaa8-495b-a9e2-aba9f2bbef6d,Set(Resource(40b4f84a-eb34-410d-825c-48c84f0cc63d)),243.54078699816682) was not in the pending tasks queue
   }
 
   private def notifySimulationControllerIfAllTasksCompleted(): Unit =

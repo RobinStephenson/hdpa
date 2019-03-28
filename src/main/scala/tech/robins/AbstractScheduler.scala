@@ -1,31 +1,25 @@
 package tech.robins
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import tech.robins.AbstractScheduler.{NewTaskForScheduling, RequestTaskForExecution}
-
-import scala.collection.mutable
+import tech.robins.AbstractScheduler.{AcceptTask, NewTaskForScheduling, RejectTask, RequestTaskForExecution}
 
 trait AbstractScheduler extends Actor with ActorLogging {
-  protected val taskQueue: mutable.Queue[Task] = mutable.Queue.empty[Task]
-  protected val waitingWorkers: mutable.Queue[ActorRef] = mutable.Queue.empty[ActorRef]
+  protected def onNewTaskForScheduling(task: Task): Unit
 
-  protected def newTaskArrivedForWaitingWorkers(): Unit
+  protected def onAcceptTask(task: Task, worker: ActorRef)
 
-  protected def enqueueNewTask(task: Task): Unit = {
-    val taskQueueWasEmpty = taskQueue.isEmpty
-    taskQueue enqueue task
-    log.info(s"Queued new task $task. ${taskQueue.length} tasks now waiting.")
-    if (taskQueueWasEmpty && waitingWorkers.nonEmpty) newTaskArrivedForWaitingWorkers()
-  }
+  protected def onRejectTask(task: Task, worker: ActorRef)
 
-  protected def handleNewTaskRequest(requester: ActorRef): Unit
+  protected def handleNewTaskRequest(requester: ActorRef, schedulingData: NodeSchedulingData): Unit
 
   def receive: Receive = {
-    case NewTaskForScheduling(task) => enqueueNewTask(task)
-    case RequestTaskForExecution =>
+    case NewTaskForScheduling(task) => onNewTaskForScheduling(task)
+    case AcceptTask(task)           => onAcceptTask(task, sender())
+    case RejectTask(task)           => onRejectTask(task, sender())
+    case RequestTaskForExecution(nodeSchedulingData) =>
       val requester = sender()
       log.info(s"Task requested from scheduler by $requester")
-      handleNewTaskRequest(requester)
+      handleNewTaskRequest(requester, nodeSchedulingData)
     case msg => log.warning(s"Unhandled message in receive: $msg")
   }
 }
@@ -33,5 +27,9 @@ trait AbstractScheduler extends Actor with ActorLogging {
 object AbstractScheduler {
   final case class NewTaskForScheduling(task: Task)
 
-  final case object RequestTaskForExecution
+  final case class AcceptTask(task: Task)
+
+  final case class RejectTask(task: Task)
+
+  final case class RequestTaskForExecution(nodeSchedulingData: NodeSchedulingData)
 }

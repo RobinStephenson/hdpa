@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
 import AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
-import ExecutionNode.StartRequestingTasksFromScheduler
+import ExecutionNode.RequestWorkFromScheduler
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props, RootActorPath}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.cluster.ClusterEvent._
@@ -62,7 +62,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
       .map(getActorForExecutionNode)
       .foreach(execNode => {
         log.info(s"Telling worker: $execNode to start requesting tasks from scheduler")
-        execNode ! StartRequestingTasksFromScheduler
+        execNode ! RequestWorkFromScheduler
       })
     executionNodesWaitingForSimulationStart.clear()
   }
@@ -82,7 +82,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
 
   private def saveReport(report: SimulationReport): Unit = {
     log.info("Saving simulation report: {}", report)
-    val fileNameDateFormat = DateTimeFormatter.ofPattern("yyyy-mm-dd-HH-mm-ss")
+    val fileNameDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss")
     val reportFileName = LocalDateTime.now().format(fileNameDateFormat) + ".json"
     val reportPath = Paths.get(".", simulationConfiguration.reportOutputPath)
     val savedFilePath = SimulationReportSaver.saveToFile(report, reportPath, reportFileName)
@@ -95,7 +95,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
       if (simulationStarted) {
         val executionNode = getActorForExecutionNode(member)
         log.info(s"Telling following new node to request tasks from scheduler: $executionNode")
-        executionNode ! StartRequestingTasksFromScheduler
+        executionNode ! RequestWorkFromScheduler
       } else {
         executionNodesWaitingForSimulationStart add member
         log.info(

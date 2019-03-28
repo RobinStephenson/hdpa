@@ -5,6 +5,7 @@ import akka.cluster.Cluster
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+// TODO shut self down when cluster master goes down
 object SimulationApplicationWorker extends SimulationApplication {
   val roleName = "simulationWorker"
 
@@ -20,6 +21,7 @@ object SimulationApplicationWorker extends SimulationApplication {
     )
   }
 
+  // TODO easily change type of execution node from configuration
   private def createExecutionNodeAndRegisterWithMaster(
     cluster: Cluster,
     system: ActorSystem,
@@ -45,7 +47,8 @@ object SimulationApplicationWorker extends SimulationApplication {
       1.minute
     )
     system.actorOf(
-      ExecutionNode.props(system.scheduler, simConfig, executionUnitsPerMinute, taskAccountant, taskScheduler),
+      OneRejectionExecutionNode
+        .props(system.scheduler, simConfig, executionUnitsPerMinute, taskAccountant, taskScheduler),
       "executionNode"
     )
   }

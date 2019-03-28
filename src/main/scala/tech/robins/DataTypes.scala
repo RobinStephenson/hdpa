@@ -15,7 +15,9 @@ object Task {
 
 case class TaskExecutionReport(task: Task, duration: FiniteDuration, localResources: Int, remoteResources: Int)
 
-case class WorkGenerationReport(totalTasks: Int) // TODO resources -> number of times appearing in a task
+case class WorkGenerationReport(totalTasks: Int)
+
+case class NodeSchedulingData(presentResources: Set[Resource])
 
 case class FetchResult(resource: Resource, fetchDuration: FiniteDuration, wasLocal: Boolean)
 

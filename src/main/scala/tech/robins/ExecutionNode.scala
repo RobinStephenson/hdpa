@@ -3,16 +3,15 @@ package tech.robins
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import AbstractScheduler.RequestTaskForExecution
+import AbstractScheduler.{AcceptTask, RejectTask, RequestTaskForExecution}
 import TaskAccountant.TaskExecutionComplete
-import akka.actor
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 
 import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class ExecutionNode(
+abstract class ExecutionNode(
   id: UUID,
   delaySimulator: DelaySimulator,
   realTimeDelays: Boolean,
@@ -24,9 +23,12 @@ class ExecutionNode(
   import ExecutionNode._
   import context.dispatcher
 
-  private val resources: mutable.Set[Resource] = mutable.Set()
+  protected val resources: mutable.Set[Resource] = mutable.Set()
 
-  private def getOrFetchResource(resource: Resource): FetchResult = {
+  protected val maxDelayTimeout: FiniteDuration = 1.hour
+
+  // TODO add a max number of resources configuration, after which resources will be removed (least used first?)
+  protected def getOrFetchResource(resource: Resource): FetchResult = {
     if (resources contains resource) {
       log.info(s"Fetching local resource $resource")
       FetchResult localResourceFetch resource
@@ -37,15 +39,10 @@ class ExecutionNode(
     }
   }
 
-  private def calculateExecutionTime(executionUnits: Double): FiniteDuration =
+  protected def calculateExecutionTime(executionUnits: Double): FiniteDuration =
     FiniteDuration((executionUnits / executionUnitsPerMinute).toLong, TimeUnit.MINUTES)
 
-  private def executeTaskThenRequestAnother(task: Task): Unit = {
-    executeTask(task)
-    requestNewTaskFromScheduler()
-  }
-
-  private def executeTask(task: Task): Unit = {
+  protected def executeTask(task: Task): Unit = {
     log.info(s"Executing task $task")
     val resourceFetchResults = task.requiredResources.map(getOrFetchResource)
     val totalResourceAccessDuration = resourceFetchResults.map(_.fetchDuration).reduce(_ + _)
@@ -70,39 +67,34 @@ class ExecutionNode(
     TaskExecutionReport(task, duration, numberOfLocalResources, numberOfRemoteResources)
   }
 
-  private def requestNewTaskFromScheduler(): Unit = {
+  protected def currentNodeSchedulingData: NodeSchedulingData = NodeSchedulingData(resources.toSet)
+
+  protected def requestNewTaskFromScheduler(): Unit = {
     log.info("Requesting new task from scheduler")
-    taskScheduler ! RequestTaskForExecution
+    val schedulingData = currentNodeSchedulingData
+    taskScheduler ! RequestTaskForExecution(schedulingData)
   }
 
+  protected def onExecuteTask(task: Task): Unit
+
+  protected def shouldAcceptTask(task: Task): Boolean
+
+  protected def onNewTaskOffer(task: Task): Unit =
+    if (shouldAcceptTask(task))
+      taskScheduler ! AcceptTask(task)
+    else
+      taskScheduler ! RejectTask(task)
+
   def receive: Receive = {
-    case NewTaskForExecution(task)         => executeTaskThenRequestAnother(task)
-    case StartRequestingTasksFromScheduler => requestNewTaskFromScheduler()
-    case msg                               => log.warning(s"Unhandled message in receive: $msg")
+    case ExecuteTask(task)        => onExecuteTask(task)
+    case OfferTask(task)          => onNewTaskOffer(task)
+    case RequestWorkFromScheduler => requestNewTaskFromScheduler()
+    case msg                      => log.warning(s"Unhandled message in receive: $msg")
   }
 }
 
 object ExecutionNode {
-  private val maxDelayTimeout = 1.hour
-
-  final case class NewTaskForExecution(task: Task)
-  final case object StartRequestingTasksFromScheduler
-
-  def props(
-    akkaScheduler: actor.Scheduler,
-    simulationConfiguration: SimulationConfiguration,
-    executionUnitsPerMinute: Double,
-    taskAccountant: ActorRef,
-    taskScheduler: ActorRef
-  ): Props =
-    Props(
-      new ExecutionNode(
-        UUID.randomUUID(),
-        new DelaySimulator(akkaScheduler),
-        simulationConfiguration.realTimeDelaysEnabled,
-        executionUnitsPerMinute,
-        taskAccountant,
-        taskScheduler
-      )
-    )
+  final case class ExecuteTask(task: Task)
+  final case class OfferTask(task: Task)
+  final case object RequestWorkFromScheduler
 }
