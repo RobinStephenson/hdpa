@@ -1,6 +1,6 @@
 package tech.robins
 
-class FixedSizeRoundRobinCache[T](size: Int) {
+class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
   private val elements: Array[Option[T]] = Array.fill(size) { None }
   private var currentAdditionIndex: Int = 0
 
