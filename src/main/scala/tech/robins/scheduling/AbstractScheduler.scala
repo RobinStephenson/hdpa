@@ -1,9 +1,11 @@
-package tech.robins
+package tech.robins.scheduling
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import tech.robins.AbstractScheduler.{AcceptTask, NewTaskForScheduling, RejectTask, RequestTaskForExecution}
+import tech.robins.{NodeSchedulingData, Task}
 
 trait AbstractScheduler extends Actor with ActorLogging {
+  import AbstractScheduler._
+
   protected def onNewTaskForScheduling(task: Task): Unit
 
   protected def onAcceptTask(task: Task, worker: ActorRef)

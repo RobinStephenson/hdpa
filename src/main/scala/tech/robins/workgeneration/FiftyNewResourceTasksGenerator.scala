@@ -1,9 +1,10 @@
-package tech.robins
+package tech.robins.workgeneration
 
 import java.util.UUID
 
-import AbstractScheduler.NewTaskForScheduling
 import akka.actor.{ActorRef, Props}
+import tech.robins._
+import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
 
 import scala.collection.mutable
 

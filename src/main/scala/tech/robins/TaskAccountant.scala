@@ -1,6 +1,6 @@
 package tech.robins
 
-import AbstractWorkloadGenerator.EndOfWorkGeneration
+import tech.robins.workgeneration.AbstractWorkloadGenerator.EndOfWorkGeneration
 import SimulationController.SimulationComplete
 import TaskAccountant.{TaskExecutionComplete, TaskScheduled}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}

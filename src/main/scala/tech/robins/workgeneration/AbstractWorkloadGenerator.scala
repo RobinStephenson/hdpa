@@ -1,10 +1,11 @@
-package tech.robins
+package tech.robins.workgeneration
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import tech.robins.WorkGenerationReport
 
 import scala.collection.mutable
 
-trait AbstractWorkloadGenerator extends Actor with ActorLogging { // TODO different types of work gen
+trait AbstractWorkloadGenerator extends Actor with ActorLogging {
   import AbstractWorkloadGenerator._
 
   private val endOfWorkSubscribers: mutable.Set[ActorRef] = mutable.Set.empty

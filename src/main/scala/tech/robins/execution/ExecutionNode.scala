@@ -1,11 +1,12 @@
-package tech.robins
+package tech.robins.execution
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import AbstractScheduler.{AcceptTask, RejectTask, RequestTaskForExecution}
-import TaskAccountant.TaskExecutionComplete
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import tech.robins.TaskAccountant.TaskExecutionComplete
+import tech.robins._
+import tech.robins.scheduling.AbstractScheduler.{AcceptTask, RejectTask, RequestTaskForExecution}
 
 import scala.collection.mutable
 import scala.concurrent.Await

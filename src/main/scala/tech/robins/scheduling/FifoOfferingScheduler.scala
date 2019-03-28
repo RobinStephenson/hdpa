@@ -1,8 +1,9 @@
-package tech.robins
-import akka.actor.{ActorRef, Props}
-import tech.robins.ExecutionNode.{ExecuteTask, OfferTask, RequestWorkFromScheduler}
+package tech.robins.scheduling
 
-// TODO package schedulers, execution node stuff etc after commit
+import akka.actor.{ActorRef, Props}
+import tech.robins.execution.ExecutionNode.{ExecuteTask, OfferTask, RequestWorkFromScheduler}
+import tech.robins._
+
 class FifoOfferingScheduler extends AbstractScheduler with HasTaskQueue with HasWaitingWorkers {
   protected def onNewTaskForScheduling(task: Task): Unit = {
     taskQueue.append(task)

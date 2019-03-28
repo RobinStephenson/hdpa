@@ -1,4 +1,4 @@
-package tech.robins
+package tech.robins.scheduling
 import akka.actor.Props
 
 object SchedulerLibrary {

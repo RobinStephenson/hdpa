@@ -5,11 +5,13 @@ import java.time.{LocalDateTime, Duration => jDuration}
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
-import AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
-import ExecutionNode.RequestWorkFromScheduler
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props, RootActorPath}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.cluster.ClusterEvent._
+import tech.robins.execution.ExecutionNode.RequestWorkFromScheduler
+import tech.robins.scheduling.SchedulerLibrary
+import tech.robins.workgeneration.AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
+import tech.robins.workgeneration.WorkloadGeneratorLibrary
 
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration

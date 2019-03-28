@@ -1,6 +1,7 @@
 package tech.robins
 import akka.actor.{ActorSystem, RootActorPath}
 import akka.cluster.Cluster
+import tech.robins.execution.OneRejectionExecutionNode
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

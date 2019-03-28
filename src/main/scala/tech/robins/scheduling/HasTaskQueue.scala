@@ -1,4 +1,6 @@
-package tech.robins
+package tech.robins.scheduling
+import tech.robins.Task
+
 import scala.collection.mutable
 
 trait HasTaskQueue {
