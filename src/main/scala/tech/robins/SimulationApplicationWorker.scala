@@ -14,9 +14,10 @@ object SimulationApplicationWorker extends SimulationApplication {
   def main(args: Array[String]): Unit = {
     val roles = Array(roleName)
     val executionUnitsPerMinute = extractExecutionUnitsPerMinuteFromArgs(args)
-    val executionNodeName = "OneRejection" // TODO get from args
+    val executionNodeName = "AlwaysAccepting" // TODO get from args
     val resourceCacheName = "FixedSizeRoundRobin" // TODO get from args
-    val resourceCacheSize = 32 // TODO get from args
+    val resourceCacheSize = 4 // TODO get from args
+    // TODO store information about the nodes in the cluster (when they arrived/left, exec units per min, resource cache) in report
     val tsConfig = getConfig(roles)
     val simConfig: SimulationConfiguration = SimulationConfiguration(tsConfig)
     val system = ActorSystem("SimulationSystem", tsConfig)

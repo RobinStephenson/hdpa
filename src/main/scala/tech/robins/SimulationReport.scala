@@ -21,5 +21,5 @@ case class SimulationReport(
 
   val totalLocalFetches: Int = taskExecutionReports.values.map(_.localResources).sum
   val totalRemoteFetches: Int = taskExecutionReports.values.map(_.remoteResources).sum
-  val simulationLocalityRate: Double = totalLocalFetches / totalRemoteFetches
+  val simulationLocalityRate: Double = totalLocalFetches / (totalRemoteFetches + totalLocalFetches)
 }

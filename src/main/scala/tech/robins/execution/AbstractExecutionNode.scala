@@ -12,7 +12,7 @@ import tech.robins.scheduling.AbstractScheduler.{AcceptTask, RejectTask, Request
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class ExecutionNode(
+abstract class AbstractExecutionNode(
   id: UUID,
   delaySimulator: DelaySimulator,
   realTimeDelays: Boolean,
@@ -22,7 +22,7 @@ abstract class ExecutionNode(
   taskScheduler: ActorRef
 ) extends Actor
     with ActorLogging {
-  import ExecutionNode._
+  import AbstractExecutionNode._
   import context.dispatcher
 
   protected val maxDelayTimeout: FiniteDuration = 1.hour
@@ -92,7 +92,7 @@ abstract class ExecutionNode(
   }
 }
 
-object ExecutionNode {
+object AbstractExecutionNode {
   final case class ExecuteTask(task: Task)
   final case class OfferTask(task: Task)
   final case object RequestWorkFromScheduler

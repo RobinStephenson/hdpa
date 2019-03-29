@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props, RootActorPath}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.cluster.ClusterEvent._
-import tech.robins.execution.ExecutionNode.RequestWorkFromScheduler
+import tech.robins.execution.AbstractExecutionNode.RequestWorkFromScheduler
 import tech.robins.scheduling.SchedulerLibrary
 import tech.robins.workgeneration.AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
 import tech.robins.workgeneration.WorkloadGeneratorLibrary
@@ -101,7 +101,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
       } else {
         executionNodesWaitingForSimulationStart add member
         log.info(
-          s"Member $member added to execution nodes waiting for simulation start. " +
+          s"Member added to execution nodes waiting for simulation start. " +
             s"${executionNodesWaitingForSimulationStart.size} waiting."
         )
       }

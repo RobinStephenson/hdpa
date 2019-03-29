@@ -8,16 +8,10 @@ trait AbstractScheduler extends Actor with ActorLogging {
 
   protected def onNewTaskForScheduling(task: Task): Unit
 
-  protected def onAcceptTask(task: Task, worker: ActorRef)
-
-  protected def onRejectTask(task: Task, worker: ActorRef)
-
   protected def handleNewTaskRequest(requester: ActorRef, schedulingData: NodeSchedulingData): Unit
 
   def receive: Receive = {
     case NewTaskForScheduling(task) => onNewTaskForScheduling(task)
-    case AcceptTask(task)           => onAcceptTask(task, sender())
-    case RejectTask(task)           => onRejectTask(task, sender())
     case RequestTaskForExecution(nodeSchedulingData) =>
       val requester = sender()
       log.info(s"Task requested from scheduler by $requester")

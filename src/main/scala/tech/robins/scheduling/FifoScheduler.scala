@@ -1,21 +1,13 @@
 package tech.robins.scheduling
 
 import akka.actor.{ActorRef, Props}
-import tech.robins.execution.ExecutionNode.ExecuteTask
+import tech.robins.execution.AbstractExecutionNode.ExecuteTask
 import tech.robins._
 
 /**
   * First in first out scheduler. Tasks as well as Requests for new tasks are served in FIFO.
   */
 class FifoScheduler extends AbstractScheduler with HasTaskQueue with HasWaitingWorkers {
-
-  private def noOffering(): Unit =
-    throw new IllegalStateException("FifoScheduler does not support task offering/rejection")
-
-  protected def onAcceptTask(task: Task, worker: ActorRef): Unit = noOffering()
-
-  protected def onRejectTask(task: Task, worker: ActorRef): Unit = noOffering()
-
   protected def onNewTaskForScheduling(task: Task): Unit = {
     val taskQueueWasEmpty = taskQueue.isEmpty
     taskQueue append task

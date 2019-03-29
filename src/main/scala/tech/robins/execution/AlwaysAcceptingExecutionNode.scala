@@ -15,7 +15,7 @@ class AlwaysAcceptingExecutionNode(
   resourceCache: Cache[Resource],
   taskAccountant: ActorRef,
   taskScheduler: ActorRef
-) extends ExecutionNode(
+) extends AbstractExecutionNode(
       id,
       delaySimulator,
       realTimeDelays,

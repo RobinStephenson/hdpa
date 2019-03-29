@@ -1,28 +1,20 @@
 package tech.robins.scheduling
 
 import akka.actor.{ActorRef, Props}
-import tech.robins.execution.ExecutionNode.{ExecuteTask, OfferTask, RequestWorkFromScheduler}
+import tech.robins.execution.AbstractExecutionNode.OfferTask
 import tech.robins._
 
-class FifoOfferingScheduler extends AbstractScheduler with HasTaskQueue with HasWaitingWorkers {
+class FifoOfferingScheduler
+    extends AbstractOfferingScheduler
+    with HasTaskQueue
+    with HasWaitingWorkers
+    with SimpleAcceptHandler {
   protected def onNewTaskForScheduling(task: Task): Unit = {
     taskQueue.append(task)
     log.info(s"Task added to task queue: $task")
     log.info(s"Task queue is now ${taskQueue.length} long.")
     waitingWorkers.foreach(_ ! OfferTask(task))
     log.info(s"Task offered to ${waitingWorkers.length} waiting workers")
-  }
-
-  protected def onAcceptTask(task: Task, worker: ActorRef): Unit = {
-    val taskStillAvailable = taskQueue contains task
-    if (taskStillAvailable) {
-      log.info(s"Task $task accepted by $worker and is still available. Assigned to worker.")
-      taskQueue -= task
-      worker ! ExecuteTask(task)
-    } else {
-      log.info(s"Task $task accepted by $worker but is no longer available. Telling worker to re request work")
-      worker ! RequestWorkFromScheduler
-    }
   }
 
   protected def onRejectTask(task: Task, worker: ActorRef): Unit = {
