@@ -6,9 +6,9 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import tech.robins.TaskAccountant.TaskExecutionComplete
 import tech.robins._
+import tech.robins.caching.Cache
 import tech.robins.scheduling.AbstractScheduler.{AcceptTask, RejectTask, RequestTaskForExecution}
 
-import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -17,6 +17,7 @@ abstract class ExecutionNode(
   delaySimulator: DelaySimulator,
   realTimeDelays: Boolean,
   executionUnitsPerMinute: Double,
+  resourceCache: Cache[Resource],
   taskAccountant: ActorRef,
   taskScheduler: ActorRef
 ) extends Actor
@@ -24,18 +25,15 @@ abstract class ExecutionNode(
   import ExecutionNode._
   import context.dispatcher
 
-  protected val resources: mutable.Set[Resource] = mutable.Set()
-
   protected val maxDelayTimeout: FiniteDuration = 1.hour
 
-  // TODO add a max number of resources configuration, after which resources will be removed (least used first?)
   protected def getOrFetchResource(resource: Resource): FetchResult = {
-    if (resources contains resource) {
+    if (resourceCache contains resource) {
       log.info(s"Fetching local resource $resource")
       FetchResult localResourceFetch resource
     } else {
       log.info(s"Fetching remote resource $resource")
-      resources add resource
+      resourceCache add resource
       FetchResult remoteResourceFetch resource
     }
   }
@@ -68,7 +66,7 @@ abstract class ExecutionNode(
     TaskExecutionReport(task, duration, numberOfLocalResources, numberOfRemoteResources)
   }
 
-  protected def currentNodeSchedulingData: NodeSchedulingData = NodeSchedulingData(resources.toSet)
+  protected def currentNodeSchedulingData: NodeSchedulingData = NodeSchedulingData(resourceCache.getItems.toSet)
 
   protected def requestNewTaskFromScheduler(): Unit = {
     log.info("Requesting new task from scheduler")

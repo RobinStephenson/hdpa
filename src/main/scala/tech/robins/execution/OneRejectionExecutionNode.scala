@@ -5,22 +5,32 @@ import java.util.UUID
 import akka.actor
 import akka.actor.{ActorRef, Props}
 import tech.robins._
+import tech.robins.caching.{Cache, FixedSizeRoundRobinCache}
 
 class OneRejectionExecutionNode(
   id: UUID,
   delaySimulator: DelaySimulator,
   realTimeDelays: Boolean,
   executionUnitsPerMinute: Double,
+  resourceCache: Cache[Resource],
   taskAccountant: ActorRef,
   taskScheduler: ActorRef
-) extends ExecutionNode(id, delaySimulator, realTimeDelays, executionUnitsPerMinute, taskAccountant, taskScheduler)
+) extends ExecutionNode(
+      id,
+      delaySimulator,
+      realTimeDelays,
+      executionUnitsPerMinute,
+      resourceCache,
+      taskAccountant,
+      taskScheduler
+    )
     with SimpleOnExecute {
   private val rejectedTasksCacheSize = 32
   private val rejectedTasksCache = new FixedSizeRoundRobinCache[Task](rejectedTasksCacheSize)
 
   protected def shouldAcceptTask(task: Task): Boolean = {
     log.info(s"Task has been offered: $task")
-    val aRequiredResourceIsPresent = resources.exists(task.requiredResources.contains)
+    val aRequiredResourceIsPresent = resourceCache.exists(task.requiredResources.contains)
     if (aRequiredResourceIsPresent) {
       log.info("Accepting task because a required resource is present")
       true
@@ -35,11 +45,12 @@ class OneRejectionExecutionNode(
   }
 }
 
-object OneRejectionExecutionNode {
+object OneRejectionExecutionNode extends ExecutionNodeBuilder {
   def props(
     akkaScheduler: actor.Scheduler,
     simulationConfiguration: SimulationConfiguration,
     executionUnitsPerMinute: Double,
+    resourceCache: Cache[Resource],
     taskAccountant: ActorRef,
     taskScheduler: ActorRef
   ): Props =
@@ -49,6 +60,7 @@ object OneRejectionExecutionNode {
         new DelaySimulator(akkaScheduler),
         simulationConfiguration.realTimeDelaysEnabled,
         executionUnitsPerMinute,
+        resourceCache,
         taskAccountant,
         taskScheduler
       )

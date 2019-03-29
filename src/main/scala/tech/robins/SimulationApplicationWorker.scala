@@ -1,7 +1,8 @@
 package tech.robins
-import akka.actor.{ActorSystem, RootActorPath}
+import akka.actor.{ActorRef, ActorSystem, Address, RootActorPath}
 import akka.cluster.Cluster
-import tech.robins.execution.OneRejectionExecutionNode
+import tech.robins.caching.CacheLibrary
+import tech.robins.execution.ExecutionNodeLibrary
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -13,46 +14,67 @@ object SimulationApplicationWorker extends SimulationApplication {
   def main(args: Array[String]): Unit = {
     val roles = Array(roleName)
     val executionUnitsPerMinute = extractExecutionUnitsPerMinuteFromArgs(args)
+    val executionNodeName = "OneRejection" // TODO get from args
+    val resourceCacheName = "FixedSizeRoundRobin" // TODO get from args
+    val resourceCacheSize = 32 // TODO get from args
     val tsConfig = getConfig(roles)
     val simConfig: SimulationConfiguration = SimulationConfiguration(tsConfig)
     val system = ActorSystem("SimulationSystem", tsConfig)
     val cluster = Cluster(system)
     cluster.registerOnMemberUp(
-      () => createExecutionNodeAndRegisterWithMaster(cluster, system, simConfig, executionUnitsPerMinute, args)
+      () =>
+        createExecutionNodeAndRegisterWithMaster(
+          cluster,
+          system,
+          simConfig,
+          executionUnitsPerMinute,
+          executionNodeName,
+          resourceCacheName,
+          resourceCacheSize
+      )
     )
   }
 
-  // TODO easily change type of execution node from configuration
   private def createExecutionNodeAndRegisterWithMaster(
     cluster: Cluster,
     system: ActorSystem,
     simConfig: SimulationConfiguration,
     executionUnitsPerMinute: Double,
-    args: Array[String]
+    executionNodeName: String,
+    resourceCacheName: String,
+    resourceCacheSize: Int
   ): Unit = {
+    val simulationMasterNodeAddress = getSimulationMasterNodeAddress(cluster)
+    val taskAccountant: ActorRef = getTaskAccountant(system, simulationMasterNodeAddress)
+    val taskScheduler = getTaskScheduler(system, simulationMasterNodeAddress)
+    val resourceCache = CacheLibrary.byName[Resource](resourceCacheName, resourceCacheSize)
+    val executionNodeProps = ExecutionNodeLibrary
+      .builders(executionNodeName)
+      .props(system.scheduler, simConfig, executionUnitsPerMinute, resourceCache, taskAccountant, taskScheduler)
+    system.actorOf(executionNodeProps, "executionNode")
+  }
 
-    val simulationMasterNodeAddress = cluster.state.members
+  private def getSimulationMasterNodeAddress(cluster: Cluster) =
+    cluster.state.members
       .find(_.hasRole(SimulationApplicationMaster.roleName))
       .getOrElse(throw new IllegalStateException(s"Could not find a simulation master in cluster: ${cluster.state}"))
       .address
-    val taskAccountant = Await.result(
-      system
-        .actorSelection(RootActorPath(simulationMasterNodeAddress) / "user" / "taskAccountant")
-        .resolveOne(1.minute),
-      1.minute
-    )
-    val taskScheduler = Await.result(
+
+  private def getTaskScheduler(system: ActorSystem, simulationMasterNodeAddress: Address) =
+    Await.result(
       system
         .actorSelection(RootActorPath(simulationMasterNodeAddress) / "user" / "taskScheduler")
         .resolveOne(1.minute),
       1.minute
     )
-    system.actorOf(
-      OneRejectionExecutionNode
-        .props(system.scheduler, simConfig, executionUnitsPerMinute, taskAccountant, taskScheduler),
-      "executionNode"
+
+  private def getTaskAccountant(system: ActorSystem, simulationMasterNodeAddress: Address) =
+    Await.result(
+      system
+        .actorSelection(RootActorPath(simulationMasterNodeAddress) / "user" / "taskAccountant")
+        .resolveOne(1.minute),
+      1.minute
     )
-  }
 
   private def extractExecutionUnitsPerMinuteFromArgs(args: Array[String]): Double = {
     if (args.isEmpty) throw new IllegalArgumentException("Provide an execution units per minute parameter.")
