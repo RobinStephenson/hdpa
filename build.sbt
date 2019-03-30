@@ -4,6 +4,7 @@ version := "1.0"
 
 scalaVersion := "2.12.8"
 
+libraryDependencies += "com.github.scopt" %% "scopt" % "3.7.1"
 libraryDependencies += "com.google.code.gson" % "gson" % "1.7.1"
 libraryDependencies += "com.typesafe" % "config" % "1.3.2"
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.21"
