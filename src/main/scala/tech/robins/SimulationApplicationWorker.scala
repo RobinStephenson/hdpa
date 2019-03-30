@@ -22,10 +22,10 @@ object SimulationApplicationWorker extends SimulationApplication {
     val simConfig: SimulationConfiguration = SimulationConfiguration(tsConfig)
     val system = ActorSystem("SimulationSystem", tsConfig)
     val cluster = Cluster(system)
-    cluster.registerOnMemberUp(() => createExecutionNodeAndRegisterWithMaster(cluster, system, simConfig, workerConfig))
+    cluster.registerOnMemberUp(() => createAndRegisterExecutionNode(cluster, system, simConfig, workerConfig))
   }
 
-  private def createExecutionNodeAndRegisterWithMaster(
+  private def createAndRegisterExecutionNode(
     cluster: Cluster,
     system: ActorSystem,
     simConfig: SimulationConfiguration,
@@ -75,7 +75,7 @@ object ArgsParsing {
   val parser: OptionParser[WorkerConfiguration] = new OptionParser[WorkerConfiguration]("HDPA") {
     opt[Double]("execUnits")
       .required()
-      .validate(units => if (units > 0) success else failure("execUnits must be >= 1"))
+      .validate(units => if (units >= 1) success else failure("Execution units per minute must be >= 1"))
       .action((x, config) => config.copy(execUnits = x))
 
     opt[String]("executionNode")
@@ -88,7 +88,7 @@ object ArgsParsing {
 
     opt[Int]("resourceCacheSize")
       .required()
-      .validate(size => if (size > 0) success else failure("resourceCacheSize must be >= 1"))
+      .validate(size => if (size >= 1) success else failure("Resource cache size must be >= 1"))
       .action((x, config) => config.copy(resourceCacheSize = x))
   }
 }
