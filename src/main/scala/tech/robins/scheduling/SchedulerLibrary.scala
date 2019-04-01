@@ -5,6 +5,7 @@ object SchedulerLibrary {
   val propsByName: Map[String, Props] = Map(
     "FifoScheduler" -> FifoScheduler.props,
     "FifoOfferingScheduler" -> FifoOfferingScheduler.props,
-    "GreedyMaxLocalityScheduler" -> GreedyMaxLocalityScheduler.props
+    "GreedyMaxLocalityScheduler" -> GreedyMaxLocalityScheduler.props,
+    "DelayingMaxLocalityScheduler" -> DelayingMaxLocalityScheduler.props
   )
 }

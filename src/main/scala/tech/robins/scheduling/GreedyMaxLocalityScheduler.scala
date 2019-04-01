@@ -18,7 +18,7 @@ class GreedyMaxLocalityScheduler extends AbstractScheduler with HasTaskQueue wit
       addToWaitingWorkers(requester)
     }
 
-  private def getTaskWithMostLocalResources(localResources: Set[Resource]): Task = {
+  protected def getTaskWithMostLocalResources(localResources: Set[Resource]): Task = {
     val localResourceCounts =
       taskQueue.map(task => task -> task.requiredResources.count(localResources.contains)).toMap
     localResourceCounts.maxBy(_._2)._1

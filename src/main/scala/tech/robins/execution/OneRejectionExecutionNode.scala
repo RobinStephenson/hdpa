@@ -23,10 +23,15 @@ class OneRejectionExecutionNode(
       resourceCache,
       taskAccountant,
       taskScheduler
-    )
-    with SimpleOnExecute {
+    ) {
   private val rejectedTasksCacheSize = 32
   private val rejectedTasksCache = new FixedSizeRoundRobinCache[Task](rejectedTasksCacheSize)
+
+  protected def onExecuteTask(task: Task): Unit = {
+    rejectedTasksCache removeIfPresent task
+    executeTask(task)
+    requestNewTaskFromScheduler()
+  }
 
   protected def shouldAcceptTask(task: Task): Boolean = {
     log.info(s"Task has been offered: $task")
