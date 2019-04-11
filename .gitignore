@@ -1,4 +1,5 @@
 reports
+src/main/resources/gitHubAccount.conf
 
 # https://gist.github.com/owainlewis/152b4a370ca8423e1c9f
 *.class
