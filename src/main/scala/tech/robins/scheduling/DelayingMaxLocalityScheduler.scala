@@ -13,7 +13,10 @@ case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) extends
 
 /** Scheduler which delays task assigment to workers up to the delay threshold if they do not have any local resources.
   * If there are multiple tasks in the queue for which the worker has local resources, the task with the largest number
-  * is assigned.
+  *
+  * If delayThreshold is set to 1, this is similar to the Matchmaking scheduler.
+  * For greater values of delayThreshold, this similar the Delay scheduler.
+  * Difference is that workers are skipped, rather than tasks.
   * @param skippedWorkersCacheSize the size of cache for skipped workers. This should be larger than the number of nodes
   *                                in this system to avoid workers waiting longer than the delay threshold, as a result
   *                                of being evicted from the cache.
@@ -48,6 +51,9 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
         skippedWorkersCounts.get(requester) match {
           case Some(skipCount) =>
             if (skipCount.get > delayThreshold) {
+              // TODO Could improve by keeping a cache of recently used resources
+              //  (therefore likely to have a worker which currently has that resource) and dont assign tasks with those
+              //  resources when only assigning because delay threshold is met. Save them for other tasks.
               log.info(s"Worker is past delay threshold, so is assigned task anyway")
               sendTask(task, requester)
             } else {
