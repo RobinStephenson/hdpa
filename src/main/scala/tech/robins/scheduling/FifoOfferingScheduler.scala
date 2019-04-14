@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, Props}
 import tech.robins.execution.AbstractExecutionNode.OfferTask
 import tech.robins._
 
+/** FIFO scheduler. But nodes can accept / reject tasks. Offers the next task in line if one is rejected */
 class FifoOfferingScheduler
     extends AbstractOfferingScheduler
     with HasTaskQueue

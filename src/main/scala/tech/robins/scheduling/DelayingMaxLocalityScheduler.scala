@@ -11,6 +11,15 @@ case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) extends
   def toPair: (ActorRef, AtomicInteger) = worker -> count
 }
 
+/** Scheduler which delays task assigment to workers up to the delay threshold if they do not have any local resources.
+  * If there are multiple tasks in the queue for which the worker has local resources, the task with the largest number
+  * is assigned.
+  * @param skippedWorkersCacheSize the size of cache for skipped workers. This should be larger than the number of nodes
+  *                                in this system to avoid workers waiting longer than the delay threshold, as a result
+  *                                of being evicted from the cache.
+  * @param delayThreshold The maximum number of times a workers request for new work can be skipped due to lack of local
+  *                       resources before the worker is assigned a task anyway.
+  */
 class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold: Int = 1)
     extends GreedyMaxLocalityScheduler {
   require(skippedWorkersCacheSize >= 1)

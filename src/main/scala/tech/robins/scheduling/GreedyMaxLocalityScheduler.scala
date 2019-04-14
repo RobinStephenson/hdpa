@@ -3,6 +3,7 @@ import akka.actor.{ActorRef, Props}
 import tech.robins.execution.AbstractExecutionNode.{ExecuteTask, RequestWorkFromScheduler}
 import tech.robins.{NodeSchedulingData, Resource, Task}
 
+/** Assigns the task with the most local resources at time of request to the worker. */
 class GreedyMaxLocalityScheduler extends AbstractScheduler with HasTaskQueue with HasWaitingWorkers {
   protected def onNewTaskForScheduling(task: Task): Unit = {
     taskQueue append task
