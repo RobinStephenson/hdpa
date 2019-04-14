@@ -35,7 +35,8 @@ class OneRejectionExecutionNode(
 
   protected def shouldAcceptTask(task: Task): Boolean = {
     log.info(s"Task has been offered: $task")
-    val aRequiredResourceIsPresent = resourceCache.exists(task.requiredResources.contains)
+    val aRequiredResourceIsPresent =
+      resourceCache.exists(cachedResource => task.requiredResourceIds.contains(cachedResource.id))
     if (aRequiredResourceIsPresent) {
       log.info("Accepting task because a required resource is present")
       true

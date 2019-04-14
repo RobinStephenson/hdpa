@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props, RootActorPath}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.cluster.ClusterEvent._
+import akka.stream.ActorMaterializer
 import tech.robins.execution.AbstractExecutionNode.RequestWorkFromScheduler
 import tech.robins.scheduling.SchedulerLibrary
 import tech.robins.workgeneration.AbstractWorkloadGenerator.{StartGeneratingWork, SubscribeToEndOfWorkGeneration}
@@ -16,15 +17,17 @@ import tech.robins.workgeneration.WorkloadGeneratorLibrary
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
-class SimulationController(simulationConfiguration: SimulationConfiguration) extends Actor with ActorLogging {
+class SimulationController(simulationConfiguration: SimulationConfiguration, materializer: ActorMaterializer)
+    extends Actor
+    with ActorLogging {
   import SimulationController._
 
   private var simulationStarted = false
   private var simulationStartTime: Option[LocalDateTime] = None
 
-  private val executionNodesWaitingForSimulationStart = mutable.Set.empty[Member]
-
   private val cluster = Cluster(context.system)
+
+  private val executionNodesWaitingForSimulationStart = mutable.Set.empty[Member]
 
   private val workloadGenerator =
     getWorkloadGeneratorByName(simulationConfiguration.workGenerationConfiguration.generatorName)
@@ -37,7 +40,8 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
     context.actorSelection(RootActorPath(executionNodeMember.address) / "user" / "executionNode")
 
   private def getWorkloadGeneratorByName(name: String): ActorRef = {
-    val props = WorkloadGeneratorLibrary.propsByName(name)(simulationConfiguration.workGenerationConfiguration)
+    val props =
+      WorkloadGeneratorLibrary.propsByName(name, materializer)(simulationConfiguration.workGenerationConfiguration)
     context.system.actorOf(props, "workloadGenerator")
   }
 
@@ -136,7 +140,8 @@ class SimulationController(simulationConfiguration: SimulationConfiguration) ext
 }
 
 object SimulationController {
-  def props(simulationConfig: SimulationConfiguration): Props = Props(new SimulationController(simulationConfig))
+  def props(simulationConfig: SimulationConfiguration, materializer: ActorMaterializer): Props =
+    Props(new SimulationController(simulationConfig, materializer))
 
   final case object StartSimulation
   final case class SimulationComplete(

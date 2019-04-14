@@ -1,10 +1,13 @@
 package tech.robins.workgeneration
 import akka.actor.Props
+import akka.stream.ActorMaterializer
 import tech.robins.WorkGenerationConfiguration
 
 object WorkloadGeneratorLibrary {
-  val propsByName: Map[String, WorkGenerationConfiguration => Props] = Map(
-    "FiftyNewResourceTasksGenerator" -> FiftyNewResourceTasksGenerator.props,
-    "MixedNewAndOldResourceWorkloadGenerator" -> MixedNewAndOldResourceWorkloadGenerator.props
-  )
+  def propsByName(name: String, materializer: ActorMaterializer): WorkGenerationConfiguration => Props =
+    name match {
+      case "FiftyNewResourceTasksGenerator"          => FiftyNewResourceTasksGenerator.props
+      case "MixedNewAndOldResourceWorkloadGenerator" => MixedNewAndOldResourceWorkloadGenerator.props
+      case "GitHubSearchingTaskGenerator"            => GitHubSearchingTaskGenerator.props(_)(materializer)
+    }
 }

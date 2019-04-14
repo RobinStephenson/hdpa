@@ -11,7 +11,10 @@ case class SimulationReport(
 
   private val taskExecutionDurations = taskExecutionReports.values.map(_.duration)
 
-  val totalTaskExecutionUnits: Double = taskExecutionReports.values.map(_.task.executionUnits).sum
+  val totalImaginaryTaskExecutionUnits: Double = taskExecutionReports.keys.collect {
+    case imaginaryTask: ImaginaryTask => imaginaryTask.executionUnits
+    case _                            => 0
+  }.sum
 
   // totalTaskExecutionDuration alone is not a useful stat as it doesnt take into account concurrency
   private val totalTaskExecutionDuration: FiniteDuration = taskExecutionDurations.reduce(_ + _)

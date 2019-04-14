@@ -4,17 +4,21 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{ActorRef, Props}
 import tech.robins.{NodeSchedulingData, Task}
-import tech.robins.caching.FixedSizeRoundRobinCache
+import tech.robins.caching.{FixedSizeRoundRobinCache, UnitCacheRemovalHook}
 import tech.robins.execution.AbstractExecutionNode.{ExecuteTask, RequestWorkFromScheduler}
+
+case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) extends UnitCacheRemovalHook {
+  def toPair: (ActorRef, AtomicInteger) = worker -> count
+}
 
 class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold: Int = 1)
     extends GreedyMaxLocalityScheduler {
   require(skippedWorkersCacheSize >= 1)
   require(delayThreshold >= 1)
 
-  private val skippedWorkersCache = new FixedSizeRoundRobinCache[(ActorRef, AtomicInteger)](skippedWorkersCacheSize)
+  private val skippedWorkersCache = new FixedSizeRoundRobinCache[SkippedWorkerAndCount](skippedWorkersCacheSize)
 
-  private def skippedWorkersCounts = skippedWorkersCache.getItems.toMap
+  private def skippedWorkersCounts = skippedWorkersCache.getItems.map(_.toPair).toMap
 
   private def sendTask(task: Task, worker: ActorRef): Unit = {
     log.info(s"Sending task $task to worker $worker")
@@ -25,8 +29,8 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
 
   override protected def handleNewTaskRequest(requester: ActorRef, schedulingData: NodeSchedulingData): Unit = {
     if (taskQueue.nonEmpty) {
-      val task = getTaskWithMostLocalResources(schedulingData.presentResources)
-      val localResources = task.requiredResources intersect schedulingData.presentResources
+      val task = getTaskWithMostLocalResources(schedulingData.presentResourceIds)
+      val localResources = task.requiredResourceIds intersect schedulingData.presentResourceIds
       if (localResources.nonEmpty) {
         log.info(s"Task with a local resource identified for $requester")
         sendTask(task, requester)
@@ -39,12 +43,12 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
               sendTask(task, requester)
             } else {
               val skips = skipCount.incrementAndGet()
-              log.info(s"Worker has now been skipped $skips times")
+              log.info(s"Worker has now been skipped $skips times. Telling worker to request again")
               requester ! RequestWorkFromScheduler
             }
           case None =>
-            log.info(s"Worker added to skipped workers cache: $requester")
-            skippedWorkersCache add (requester -> new AtomicInteger(1))
+            log.info(s"Worker added to skipped workers cache: $requester. Telling worker to request again")
+            skippedWorkersCache add SkippedWorkerAndCount(requester, new AtomicInteger(1))
             requester ! RequestWorkFromScheduler
         }
       }

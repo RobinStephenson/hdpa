@@ -13,18 +13,18 @@ class MixedNewAndOldResourceWorkloadGenerator(executionUnitsDistribution: Distri
     extends AbstractWorkloadGenerator {
   private val numberOfTasks = 50
 
-  private val existingResources: mutable.ArrayBuffer[Resource] = mutable.ArrayBuffer.empty
+  private val existingResourceIds: mutable.ArrayBuffer[String] = mutable.ArrayBuffer.empty
 
   private def createTaskWithNewResource(): Task = {
-    val resource = Resource(UUID.randomUUID())
-    existingResources += resource
-    Task(Set(resource), executionUnitsDistribution.random())
+    val resource = UUID.randomUUID().toString
+    existingResourceIds += resource
+    ImaginaryTask(Set(resource), executionUnitsDistribution.random())
   }
 
   private def createTaskWithExistingResource(): Task = {
-    val randomIndex = Random.nextInt(existingResources.size)
-    val resource = existingResources(randomIndex)
-    Task(Set(resource), executionUnitsDistribution.random())
+    val randomIndex = Random.nextInt(existingResourceIds.size)
+    val resource = existingResourceIds(randomIndex)
+    ImaginaryTask(Set(resource), executionUnitsDistribution.random())
   }
 
   protected def generateWork(scheduler: ActorRef): WorkGenerationReport = {

@@ -2,22 +2,53 @@ package tech.robins
 
 import java.util.UUID
 
+import org.eclipse.jgit.api.Git
+import tech.robins.RealTask.WorkResult
+import tech.robins.caching.{HasCacheRemovalHook, UnitCacheRemovalHook}
+
 import scala.concurrent.duration._
 
-case class Resource(id: UUID)
+trait Resource extends HasCacheRemovalHook {
+  val id: String
+}
 
-case class Task(id: UUID, requiredResources: Set[Resource], executionUnits: Double)
+case class ImaginaryResource(id: String) extends Resource with UnitCacheRemovalHook
 
-object Task {
-  def apply(requiredResources: Set[Resource], executionUnits: Double): Task =
-    Task(UUID.randomUUID(), requiredResources, executionUnits)
+case class GitHubRepo(fullName: String, localClone: Git) extends Resource {
+  val id: String = fullName
+
+  def onRemovedFromCache(): Unit = localClone.getRepository.getWorkTree.delete()
+}
+
+sealed trait Task extends UnitCacheRemovalHook {
+  val id: UUID
+  val requiredResourceIds: Set[String]
+}
+
+case class ImaginaryTask(id: UUID, requiredResourceIds: Set[String], executionUnits: Double) extends Task
+
+object ImaginaryTask {
+  def apply(requiredResourceIds: Set[String], executionUnits: Double): ImaginaryTask =
+    ImaginaryTask(UUID.randomUUID(), requiredResourceIds, executionUnits)
+}
+
+trait RealTask extends Task {
+  val requiredResourceIds: Set[String]
+
+  def work(resources: Set[Resource]): WorkResult
+
+  def fetchRemoteResource(resourceId: String): Resource
+}
+
+object RealTask {
+  final case class WorkResult(payload: Any)
 }
 
 case class TaskExecutionReport(task: Task, duration: FiniteDuration, localResources: Int, remoteResources: Int)
 
 case class WorkGenerationReport(totalTasks: Int)
 
-case class NodeSchedulingData(presentResources: Set[Resource])
+case class NodeSchedulingData(presentResourceIds: Set[String])
 
 case class FetchResult(resource: Resource, fetchDuration: FiniteDuration, wasLocal: Boolean)
 

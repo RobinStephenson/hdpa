@@ -1,6 +1,6 @@
 package tech.robins.caching
 
-trait Cache[T] {
+trait Cache[T <: HasCacheRemovalHook] {
   def getItems: Iterable[T]
 
   def add(element: T): Unit
@@ -14,4 +14,6 @@ trait Cache[T] {
   def contains(element: T): Boolean
 
   def exists(predicate: T => Boolean): Boolean
+
+  def find(predicate: T => Boolean): Option[T]
 }

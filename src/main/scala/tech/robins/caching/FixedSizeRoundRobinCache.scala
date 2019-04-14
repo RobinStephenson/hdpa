@@ -1,6 +1,6 @@
 package tech.robins.caching
 
-class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
+class FixedSizeRoundRobinCache[T <: HasCacheRemovalHook](size: Int) extends Cache[T] {
   private val elements: Array[Option[T]] = Array.fill(size) { None }
   private var currentAdditionIndex: Int = 0
 
@@ -9,11 +9,23 @@ class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
     if (currentAdditionIndex >= elements.length) currentAdditionIndex = 0
   }
 
+  private def replace(index: Int, replacement: T): Unit = {
+    val removedElement = elements(index).get
+    elements.update(index, Some(replacement))
+    removedElement.onRemovedFromCache()
+  }
+
+  private def remove(index: Int): Unit = {
+    val removedElement = elements(index).get
+    elements.update(index, None)
+    removedElement.onRemovedFromCache()
+  }
+
   def add(element: T): Unit = {
     // Check if there is a free slot, if so use it, otherwise replace by round robin
     elements.indexOf(None) match {
       case -1 =>
-        elements.update(currentAdditionIndex, Some(element))
+        replace(currentAdditionIndex, element)
         shiftCurrentAdditionIndex()
       case emptySlot =>
         elements.update(emptySlot, Some(element))
@@ -25,7 +37,7 @@ class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
   def removeIfPresent(element: T): Boolean = {
     val elementIndex = elements.indexOf(Some(element))
     if (elementIndex != -1) {
-      elements.update(elementIndex, None)
+      remove(elementIndex)
       true
     } else {
       false
@@ -45,4 +57,11 @@ class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
       case None          => false
     })
   }
+
+  def find(predicate: T => Boolean): Option[T] =
+    elements
+      .collect {
+        case Some(element) => element
+      }
+      .find(predicate)
 }

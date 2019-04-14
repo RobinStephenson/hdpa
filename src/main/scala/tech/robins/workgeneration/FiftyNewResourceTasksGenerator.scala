@@ -10,13 +10,7 @@ import scala.collection.mutable
 
 class FiftyNewResourceTasksGenerator(workGenerationConfiguration: WorkGenerationConfiguration)
     extends AbstractWorkloadGenerator {
-  private val encounteredResources = mutable.Set.empty[Resource]
-
-  private def generateNewResource(): Resource = {
-    val resource = Resource(UUID.randomUUID())
-    log.info(s"Generated new resource $resource")
-    resource
-  }
+  private val encounteredResourceIds = mutable.Set.empty[String]
 
   protected def generateWork(scheduler: ActorRef): WorkGenerationReport = {
     val totalTasks = 50
@@ -30,18 +24,18 @@ class FiftyNewResourceTasksGenerator(workGenerationConfiguration: WorkGeneration
   }
 
   protected def createTask(numberOfEncounteredResources: Int, numberOfNewResources: Int): Task =
-    if (numberOfEncounteredResources > encounteredResources.size) {
+    if (numberOfEncounteredResources > encounteredResourceIds.size) {
       throw new IllegalArgumentException(
         s"Not enough encountered resources to satisfy request. " +
-          s"${encounteredResources.size} available, $numberOfEncounteredResources requested"
+          s"${encounteredResourceIds.size} available, $numberOfEncounteredResources requested"
       )
     } else {
-      val encounteredResourcesDependencies = encounteredResources take numberOfEncounteredResources
-      val newResourcesDependencies = for (_ <- Range(0, numberOfNewResources)) yield generateNewResource()
-      newResourcesDependencies.foreach(encounteredResources.add)
+      val encounteredResourcesDependencies = encounteredResourceIds.take(numberOfEncounteredResources)
+      val newResourcesDependencies = for (_ <- Range(0, numberOfNewResources)) yield UUID.randomUUID().toString
+      newResourcesDependencies.foreach(encounteredResourceIds.add)
       val allResourceDependencies = encounteredResourcesDependencies.toSet ++ newResourcesDependencies
       val executionUnits = workGenerationConfiguration.executionUnitsDistribution.random()
-      val task = Task(UUID.randomUUID(), allResourceDependencies, executionUnits)
+      val task = ImaginaryTask(allResourceDependencies, executionUnits)
       log.info(s"Created new task $task")
       task
     }

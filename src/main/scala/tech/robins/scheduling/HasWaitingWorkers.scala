@@ -8,6 +8,6 @@ trait HasWaitingWorkers extends Actor with ActorLogging { this: AbstractSchedule
 
   protected def addToWaitingWorkers(worker: ActorRef): Unit = {
     waitingWorkers append worker
-    log.info(s"There are now ${waitingWorkers.length} workers waiting.")
+    log.info(s"There are now ${waitingWorkers.length} workers waiting for tasks.")
   }
 }
