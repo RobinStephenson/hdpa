@@ -50,10 +50,12 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
         log.info(s"No tasks with local resources in queue for $requester")
         skippedWorkersCounts.get(requester) match {
           case Some(skipCount) =>
-            if (skipCount.get > delayThreshold) {
+            if (skipCount.get >= delayThreshold) {
               // TODO Could improve by keeping a cache of recently used resources
               //  (therefore likely to have a worker which currently has that resource) and dont assign tasks with those
               //  resources when only assigning because delay threshold is met. Save them for other tasks.
+              //  or, a reasonably close heuristic, send the task most recently added to the queue. or pick at random.
+              //  At the moment, I think it may be getting the next task in queue, which should be improved if so.
               log.info(s"Worker is past delay threshold, so is assigned task anyway")
               sendTask(task, requester)
             } else {
