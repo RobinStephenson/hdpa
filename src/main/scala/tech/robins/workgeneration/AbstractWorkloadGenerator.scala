@@ -1,7 +1,8 @@
 package tech.robins.workgeneration
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import tech.robins.WorkGenerationReport
+import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
+import tech.robins.{Task, WorkGenerationReport}
 
 import scala.collection.mutable
 
@@ -10,9 +11,10 @@ trait AbstractWorkloadGenerator extends Actor with ActorLogging {
 
   private val endOfWorkSubscribers: mutable.Set[ActorRef] = mutable.Set.empty
 
-  protected def startGeneratingWorkThenSendFinishedMessages(scheduler: ActorRef): Unit = {
+  private def startGeneratingWorkThenSendFinishedMessages(scheduler: ActorRef): Unit = {
     log.info("Starting work generation")
-    val workGenerationReport = generateWork(scheduler)
+    def sendTask(task: Task): Unit = scheduler ! NewTaskForScheduling(task)
+    val workGenerationReport = generateWork(sendTask)
     log.info(s"Work generation complete. Sending work generation reports to subscribers: $endOfWorkSubscribers")
     endOfWorkSubscribers.foreach(_ ! EndOfWorkGeneration(workGenerationReport))
   }
@@ -25,7 +27,7 @@ trait AbstractWorkloadGenerator extends Actor with ActorLogging {
       endOfWorkSubscribers add subscriber
   }
 
-  protected def generateWork(scheduler: ActorRef): WorkGenerationReport
+  protected def generateWork(sendTask: Task => Unit): WorkGenerationReport
 
   def receive: Receive = {
     case SubscribeToEndOfWorkGeneration(subscriber) => subscribeToEndOfWork(subscriber)

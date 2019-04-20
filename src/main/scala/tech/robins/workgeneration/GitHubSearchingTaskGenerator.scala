@@ -1,12 +1,11 @@
 package tech.robins.workgeneration
 
 import akka.NotUsed
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import tech.robins.GitHubContentSearch.RepoFullName
 import tech.robins._
-import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -25,16 +24,16 @@ class GitHubSearchingTaskGenerator(workGenerationTimeout: Duration = 1.hour)(imp
     )
   )
 
-  private def schedulerSink(scheduler: ActorRef): Sink[RealTask, Future[WorkGenerationReport]] =
+  private def schedulerSink(sendTask: Task => Unit): Sink[RealTask, Future[WorkGenerationReport]] =
     Sink.fold[WorkGenerationReport, RealTask](WorkGenerationReport(0))((workGenReport, task) => {
-      scheduler ! NewTaskForScheduling(task)
+      sendTask(task)
       WorkGenerationReport(workGenReport.totalTasks + 1)
     })
 
-  protected def generateWork(scheduler: ActorRef): WorkGenerationReport = {
+  protected def generateWork(sendTask: Task => Unit): WorkGenerationReport = {
     val eventualReport: Future[WorkGenerationReport] = gmfGraphRepoSource
       .via(createTasksFlow)
-      .toMat(schedulerSink(scheduler))(Keep.right)
+      .toMat(schedulerSink(sendTask))(Keep.right)
       .run()
     Await.result(eventualReport, workGenerationTimeout)
   }

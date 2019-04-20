@@ -2,9 +2,8 @@ package tech.robins.workgeneration
 
 import java.util.UUID
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import tech.robins._
-import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
 
 import scala.collection.mutable
 
@@ -12,13 +11,13 @@ class FiftyNewResourceTasksGenerator(workGenerationConfiguration: WorkGeneration
     extends AbstractWorkloadGenerator {
   private val encounteredResourceIds = mutable.Set.empty[String]
 
-  protected def generateWork(scheduler: ActorRef): WorkGenerationReport = {
+  protected def generateWork(sendTask: Task => Unit): WorkGenerationReport = {
     val totalTasks = 50
-    log.info(s"Generating work for scheduler $scheduler")
+    log.info(s"Generating work for scheduler")
     for (_ <- Range(0, 50)) {
       val task = createTask(0, 1)
       log.info(s"Sending new task $task to scheduler")
-      scheduler ! NewTaskForScheduling(task)
+      sendTask(task)
     }
     WorkGenerationReport(totalTasks)
   }

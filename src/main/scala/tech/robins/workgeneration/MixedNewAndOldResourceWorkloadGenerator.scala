@@ -2,9 +2,8 @@ package tech.robins.workgeneration
 
 import java.util.UUID
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.Props
 import tech.robins._
-import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
 
 import scala.collection.mutable
 import scala.util.Random
@@ -27,10 +26,10 @@ class MixedNewAndOldResourceWorkloadGenerator(executionUnitsDistribution: Distri
     ImaginaryTask(Set(resource), executionUnitsDistribution.random())
   }
 
-  protected def generateWork(scheduler: ActorRef): WorkGenerationReport = {
+  protected def generateWork(sendTask: Task => Unit): WorkGenerationReport = {
     for (_ <- Range(0, numberOfTasks / 2)) { // divide by 2 because 2 tasks are created in each iteration
-      scheduler ! NewTaskForScheduling(createTaskWithNewResource())
-      scheduler ! NewTaskForScheduling(createTaskWithExistingResource())
+      sendTask(createTaskWithNewResource())
+      sendTask(createTaskWithExistingResource())
     }
     WorkGenerationReport(numberOfTasks)
   }
