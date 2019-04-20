@@ -12,7 +12,7 @@ case class SimulationConfiguration(
 object SimulationConfiguration {
   def apply(tsConfig: Config): SimulationConfiguration = {
     val realTimeDelaysEnabled = tsConfig.getBoolean("simulation.useRealTimeDelays")
-    val schedulerName = tsConfig.getString("simulation.schedulerName")
+    val schedulerName = tsConfig.getString("simulation.scheduler.name")
     val reportOutputPath = tsConfig.getString("simulation.reportOutputPath")
     val workGenerationConfiguration = WorkGenerationConfiguration.fromConfig(tsConfig)
     SimulationConfiguration(schedulerName, realTimeDelaysEnabled, workGenerationConfiguration, reportOutputPath)

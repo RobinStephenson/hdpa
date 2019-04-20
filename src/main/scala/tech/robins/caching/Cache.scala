@@ -1,6 +1,10 @@
 package tech.robins.caching
 
-trait Cache[T <: HasCacheRemovalHook] {
+trait Cache[T] {
+  protected def callRemovalHookIfPresent(element: T): Unit = element match {
+    case removedElement: HasCacheRemovalHook => removedElement.onRemovedFromCache()
+  }
+
   def getItems: Iterable[T]
 
   def add(element: T): Unit

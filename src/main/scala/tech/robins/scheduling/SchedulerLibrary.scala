@@ -6,6 +6,9 @@ object SchedulerLibrary {
     "FifoScheduler" -> FifoScheduler.props,
     "FifoOfferingScheduler" -> FifoOfferingScheduler.props,
     "GreedyMaxLocalityScheduler" -> GreedyMaxLocalityScheduler.props,
-    "DelayingMaxLocalityScheduler" -> DelayingMaxLocalityScheduler.props
+    "DMLSFirstInQueue" -> DMLSFirstInQueue.props,
+    "DMLSLastInQueue" -> DMLSLastInQueue.props,
+    "DMLSRandom" -> DMLSRandom.props,
+    "DMLSRecentResourceCache" -> DMLSRecentResourceCache.props
   )
 }

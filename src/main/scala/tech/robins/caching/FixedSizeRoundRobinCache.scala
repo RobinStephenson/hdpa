@@ -1,6 +1,6 @@
 package tech.robins.caching
 
-class FixedSizeRoundRobinCache[T <: HasCacheRemovalHook](size: Int) extends Cache[T] {
+class FixedSizeRoundRobinCache[T](size: Int) extends Cache[T] {
   private val elements: Array[Option[T]] = Array.fill(size) { None }
   private var currentAdditionIndex: Int = 0
 
@@ -12,13 +12,13 @@ class FixedSizeRoundRobinCache[T <: HasCacheRemovalHook](size: Int) extends Cach
   private def replace(index: Int, replacement: T): Unit = {
     val removedElement = elements(index).get
     elements.update(index, Some(replacement))
-    removedElement.onRemovedFromCache()
+    callRemovalHookIfPresent(removedElement)
   }
 
   private def remove(index: Int): Unit = {
     val removedElement = elements(index).get
     elements.update(index, None)
-    removedElement.onRemovedFromCache()
+    callRemovalHookIfPresent(removedElement)
   }
 
   def add(element: T): Unit = {

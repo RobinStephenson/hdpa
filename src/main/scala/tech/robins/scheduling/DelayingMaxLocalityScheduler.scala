@@ -3,11 +3,14 @@ package tech.robins.scheduling
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{ActorRef, Props}
+import com.typesafe.config.{Config, ConfigFactory}
 import tech.robins.{NodeSchedulingData, Task}
-import tech.robins.caching.{FixedSizeRoundRobinCache, UnitCacheRemovalHook}
+import tech.robins.caching.FixedSizeRoundRobinCache
 import tech.robins.execution.AbstractExecutionNode.{ExecuteTask, RequestWorkFromScheduler}
 
-case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) extends UnitCacheRemovalHook {
+import scala.util.Random
+
+case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) {
   def toPair: (ActorRef, AtomicInteger) = worker -> count
 }
 
@@ -23,7 +26,7 @@ case class SkippedWorkerAndCount(worker: ActorRef, count: AtomicInteger) extends
   * @param delayThreshold The maximum number of times a workers request for new work can be skipped due to lack of local
   *                       resources before the worker is assigned a task anyway.
   */
-class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold: Int = 1)
+abstract class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold: Int)
     extends GreedyMaxLocalityScheduler {
   require(skippedWorkersCacheSize >= 1)
   require(delayThreshold >= 1)
@@ -32,12 +35,14 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
 
   private def skippedWorkersCounts = skippedWorkersCache.getItems.map(_.toPair).toMap
 
-  private def sendTask(task: Task, worker: ActorRef): Unit = {
+  protected def sendTask(task: Task, worker: ActorRef): Unit = {
     log.info(s"Sending task $task to worker $worker")
     taskQueue -= task
     skippedWorkersCounts.get(worker).foreach(_.set(0))
     worker ! ExecuteTask(task)
   }
+
+  protected def chooseTaskForNonLocalAssignment: Task
 
   override protected def handleNewTaskRequest(requester: ActorRef, schedulingData: NodeSchedulingData): Unit = {
     if (taskQueue.nonEmpty) {
@@ -51,13 +56,7 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
         skippedWorkersCounts.get(requester) match {
           case Some(skipCount) =>
             if (skipCount.get >= delayThreshold) {
-              // TODO Could improve by keeping a cache of recently used resources
-              //  (therefore likely to have a worker which currently has that resource) and dont assign tasks with those
-              //  resources when only assigning because delay threshold is met. Save them for other tasks.
-              //  or, a reasonably close heuristic, send the task most recently added to the queue. or pick at random.
-              //  At the moment, I think it may be getting the next task in queue, which should be improved if so.
-              log.info(s"Worker is past delay threshold, so is assigned task anyway")
-              sendTask(task, requester)
+              sendTask(chooseTaskForNonLocalAssignment, requester)
             } else {
               val skips = skipCount.incrementAndGet()
               log.info(s"Worker has now been skipped $skips times. Telling worker to request again")
@@ -76,5 +75,93 @@ class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayThreshold:
 }
 
 object DelayingMaxLocalityScheduler {
-  val props = Props(new DelayingMaxLocalityScheduler(128, 1)) // TODO get from config
+  val dmlsConfig: Config = ConfigFactory.load().getConfig("simulation.scheduler.dmlsParameters")
+  // TODO update configs in appendix
+  // TODO mention in section on configuration that DMLS scheduler has extra config parameters. Ignored if other scheduler used.
+  val skippedWorkerCacheSize: Int = dmlsConfig.getInt("skippedWorkerCacheSize")
+  val delayThreshold: Int = dmlsConfig.getInt("delayThreshold")
+}
+
+// When delay threshold is met and a non local assignment is required: the first item in the queue is chosen
+class DMLSFirstInQueue(skippedWorkersCacheSize: Int, delayThreshold: Int)
+    extends DelayingMaxLocalityScheduler(skippedWorkersCacheSize, delayThreshold) {
+  protected def chooseTaskForNonLocalAssignment: Task = taskQueue.head
+}
+
+object DMLSFirstInQueue {
+  val props: Props = Props(
+    new DMLSFirstInQueue(
+      DelayingMaxLocalityScheduler.skippedWorkerCacheSize,
+      DelayingMaxLocalityScheduler.delayThreshold
+    )
+  )
+}
+
+// When delay threshold is met and a non local assignment is required: the last item in the queue is chosen
+class DMLSLastInQueue(skippedWorkersCacheSize: Int, delayThreshold: Int)
+    extends DelayingMaxLocalityScheduler(skippedWorkersCacheSize, delayThreshold) {
+  protected def chooseTaskForNonLocalAssignment: Task = taskQueue.last
+}
+
+object DMLSLastInQueue {
+  val props: Props = Props(
+    new DMLSLastInQueue(
+      DelayingMaxLocalityScheduler.skippedWorkerCacheSize,
+      DelayingMaxLocalityScheduler.delayThreshold
+    )
+  )
+}
+
+// When delay threshold is met and a non local assignment is required: one is chosen at random
+class DMLSRandom(skippedWorkersCacheSize: Int, delayThreshold: Int)
+    extends DelayingMaxLocalityScheduler(skippedWorkersCacheSize, delayThreshold) {
+  protected def chooseTaskForNonLocalAssignment: Task = {
+    val randomIndex = Random.nextInt(taskQueue.length)
+    taskQueue(randomIndex)
+  }
+}
+
+object DMLSRandom {
+  val props: Props = Props(
+    new DMLSRandom(
+      DelayingMaxLocalityScheduler.skippedWorkerCacheSize,
+      DelayingMaxLocalityScheduler.delayThreshold
+    )
+  )
+}
+
+// When delay threshold is met and a non local assignment is required:
+// The last task in the queue which does not require a recently used resources is chosen if possible. If no such task
+// exists, then the last task in the queue is used.
+class DMLSRecentResourceCache(recentResourceIdCacheSize: Int, skippedWorkersCacheSize: Int, delayThreshold: Int)
+    extends DelayingMaxLocalityScheduler(skippedWorkersCacheSize, delayThreshold) {
+  require(recentResourceIdCacheSize >= 1)
+
+  private val recentResourceIdCache = new FixedSizeRoundRobinCache[String](recentResourceIdCacheSize)
+
+  override protected def sendTask(task: Task, worker: ActorRef): Unit = {
+    task.requiredResourceIds.foreach(recentResourceIdCache.add)
+    super.sendTask(task, worker)
+  }
+
+  protected def chooseTaskForNonLocalAssignment: Task = {
+    val tasksWithoutRecentlyUsedResources = taskQueue.filterNot(
+      task => recentResourceIdCache.exists(recentResourceId => task.requiredResourceIds.contains(recentResourceId))
+    )
+    if (tasksWithoutRecentlyUsedResources.nonEmpty)
+      tasksWithoutRecentlyUsedResources.last
+    else
+      taskQueue.last
+  }
+}
+
+object DMLSRecentResourceCache {
+  private val recentResourceCacheSize = DelayingMaxLocalityScheduler.dmlsConfig.getInt("recentResourceCacheSize")
+  val props: Props = Props(
+    new DMLSRecentResourceCache(
+      recentResourceCacheSize,
+      DelayingMaxLocalityScheduler.skippedWorkerCacheSize,
+      DelayingMaxLocalityScheduler.delayThreshold
+    )
+  )
 }
