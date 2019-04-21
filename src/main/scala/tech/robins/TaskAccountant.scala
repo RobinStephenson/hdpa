@@ -30,8 +30,8 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
     if (pendingTasks contains scheduledTask) {
       log.warning(s"Task $scheduledTask is already pending")
     } else {
-      log.info(s"Adding task $scheduledTask to pending tasks. ${pendingTasks.size} tasks pending.")
       pendingTasks += scheduledTask
+      log.info(s"Added task $scheduledTask to pending tasks. ${pendingTasks.size} tasks pending.")
     }
   }
 
