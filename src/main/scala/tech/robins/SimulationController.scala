@@ -62,7 +62,7 @@ class SimulationController(simulationConfiguration: SimulationConfiguration, mat
     simulationStartTime = Some(LocalDateTime.now())
 
     workloadGenerator ! SubscribeToEndOfWorkGeneration(taskAccountant)
-    workloadGenerator ! StartGeneratingWork(scheduler)
+    workloadGenerator ! StartGeneratingWork(scheduler, taskAccountant)
 
     executionNodesWaitingForSimulationStart
       .map(getActorForExecutionNode)

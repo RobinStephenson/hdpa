@@ -2,7 +2,7 @@ package tech.robins
 
 import tech.robins.workgeneration.AbstractWorkloadGenerator.EndOfWorkGeneration
 import SimulationController.SimulationComplete
-import TaskAccountant.{TaskExecutionComplete, TaskScheduled}
+import TaskAccountant.{TaskExecutionComplete, TaskSentToScheduler}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
 import scala.collection.mutable
@@ -28,9 +28,9 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
 
   private def addToPendingTasks(scheduledTask: Task): Unit = {
     if (pendingTasks contains scheduledTask) {
-      log.warning(s"Scheduled task $scheduledTask is already pending")
+      log.warning(s"Task $scheduledTask is already pending")
     } else {
-      log.info(s"Adding scheduled task $scheduledTask to pending tasks. ${pendingTasks.size} tasks pending.")
+      log.info(s"Adding task $scheduledTask to pending tasks. ${pendingTasks.size} tasks pending.")
       pendingTasks += scheduledTask
     }
   }
@@ -70,14 +70,14 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
 
   def receive: Receive = {
     case EndOfWorkGeneration(report)                  => noMoreWorkBeingGenerated(report)
-    case TaskScheduled(task)                          => addToPendingTasks(task)
+    case TaskSentToScheduler(task)                          => addToPendingTasks(task)
     case TaskExecutionComplete(task, executionReport) => taskExecutionCompleted(task, executionReport)
     case msg                                          => log.warning(s"Unhandled message in receive: $msg")
   }
 }
 
 object TaskAccountant {
-  final case class TaskScheduled(task: Task)
+  final case class TaskSentToScheduler(task: Task)
   final case class TaskExecutionComplete(task: Task, executionReport: TaskExecutionReport)
 
   def props(simulationController: ActorRef): Props = Props(new TaskAccountant(simulationController))

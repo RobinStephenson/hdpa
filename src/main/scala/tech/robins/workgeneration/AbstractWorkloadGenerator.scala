@@ -1,6 +1,7 @@
 package tech.robins.workgeneration
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import tech.robins.TaskAccountant.TaskSentToScheduler
 import tech.robins.scheduling.AbstractScheduler.NewTaskForScheduling
 import tech.robins.{Task, WorkGenerationReport}
 
@@ -11,9 +12,12 @@ trait AbstractWorkloadGenerator extends Actor with ActorLogging {
 
   private val endOfWorkSubscribers: mutable.Set[ActorRef] = mutable.Set.empty
 
-  private def startGeneratingWorkThenSendFinishedMessages(scheduler: ActorRef): Unit = {
+  private def startGeneratingWorkThenSendFinishedMessages(scheduler: ActorRef, taskAccountant: ActorRef): Unit = {
     log.info("Starting work generation")
-    def sendTask(task: Task): Unit = scheduler ! NewTaskForScheduling(task)
+    def sendTask(task: Task): Unit = {
+      scheduler ! NewTaskForScheduling(task)
+      taskAccountant ! TaskSentToScheduler(task)
+    }
     val workGenerationReport = generateWork(sendTask)
     log.info(s"Work generation complete. Sending work generation reports to subscribers: $endOfWorkSubscribers")
     endOfWorkSubscribers.foreach(_ ! EndOfWorkGeneration(workGenerationReport))
@@ -31,13 +35,13 @@ trait AbstractWorkloadGenerator extends Actor with ActorLogging {
 
   def receive: Receive = {
     case SubscribeToEndOfWorkGeneration(subscriber) => subscribeToEndOfWork(subscriber)
-    case StartGeneratingWork(scheduler)             => startGeneratingWorkThenSendFinishedMessages(scheduler)
+    case StartGeneratingWork(scheduler, ta)         => startGeneratingWorkThenSendFinishedMessages(scheduler, ta)
     case msg                                        => log.warning(s"Unhandled message in receive: $msg")
   }
 }
 
 object AbstractWorkloadGenerator {
-  final case class StartGeneratingWork(scheduler: ActorRef)
+  final case class StartGeneratingWork(scheduler: ActorRef, taskAccountant: ActorRef)
   final case class SubscribeToEndOfWorkGeneration(subscriber: ActorRef)
   final case class EndOfWorkGeneration(workGenerationReport: WorkGenerationReport)
 }
