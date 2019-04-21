@@ -8,6 +8,7 @@ class GreedyMaxLocalityScheduler extends AbstractScheduler with HasTaskQueue wit
   protected def onNewTaskForScheduling(task: Task): Unit = {
     taskQueue append task
     waitingWorkers.foreach(_ ! RequestWorkFromScheduler)
+    waitingWorkers.clear()
   }
 
   protected def handleNewTaskRequest(requester: ActorRef, schedulingData: NodeSchedulingData): Unit =
