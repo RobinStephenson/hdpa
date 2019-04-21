@@ -14,6 +14,7 @@ class GreedyMaxLocalityScheduler extends AbstractScheduler with HasTaskQueue wit
     if (taskQueue.nonEmpty) {
       val task = getTaskWithMostLocalResources(schedulingData.presentResourceIds)
       taskQueue -= task
+      waitingWorkers -= requester
       requester ! ExecuteTask(task)
     } else {
       addToWaitingWorkers(requester)

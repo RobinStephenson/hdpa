@@ -38,6 +38,7 @@ abstract class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayT
   protected def sendTask(task: Task, worker: ActorRef): Unit = {
     log.info(s"Sending task $task to worker $worker")
     taskQueue -= task
+    waitingWorkers -= worker
     skippedWorkersCounts.get(worker).foreach(_.set(0))
     worker ! ExecuteTask(task)
   }
