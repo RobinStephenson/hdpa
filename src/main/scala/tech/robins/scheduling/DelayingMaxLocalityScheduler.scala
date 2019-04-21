@@ -76,8 +76,7 @@ abstract class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayT
 
 object DelayingMaxLocalityScheduler {
   val dmlsConfig: Config = ConfigFactory.load().getConfig("simulation.scheduler.dmlsParameters")
-  // TODO update configs in appendix
-  // TODO mention in section on configuration that DMLS scheduler has extra config parameters. Ignored if other scheduler used.
+
   val skippedWorkerCacheSize: Int = dmlsConfig.getInt("skippedWorkerCacheSize")
   val delayThreshold: Int = dmlsConfig.getInt("delayThreshold")
 }
