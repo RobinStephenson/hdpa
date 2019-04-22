@@ -38,7 +38,7 @@ class TaskAccountant(simulationController: ActorRef) extends Actor with ActorLog
   private def removeFromPendingTasks(completedTask: Task): Unit = {
     val wasPresent = pendingTasks remove completedTask
     if (wasPresent)
-      log.info(s"Competed task $completedTask removed from pending tasks")
+      log.info(s"Completed task $completedTask removed from pending tasks")
     else
       log.warning(s"Completed task $completedTask was not in the pending tasks queue")
     // TODO investigate errors. probably a race condition where the completion message arrives before the task accountant is told its pending

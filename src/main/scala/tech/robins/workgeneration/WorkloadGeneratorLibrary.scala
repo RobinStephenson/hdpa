@@ -9,5 +9,6 @@ object WorkloadGeneratorLibrary {
       case "FiftyNewResourceTasksGenerator"          => FiftyNewResourceTasksGenerator.props
       case "MixedNewAndOldResourceWorkloadGenerator" => MixedNewAndOldResourceWorkloadGenerator.props
       case "GitHubSearchingTaskGenerator"            => GitHubSearchingTaskGenerator.props(_)(materializer)
+      case "ThrottledGitHubSearchingTaskGenerator"   => ThrottledGitHubSearchingTaskGenerator.props(_)(materializer)
     }
 }

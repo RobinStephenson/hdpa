@@ -66,10 +66,11 @@ abstract class DelayingMaxLocalityScheduler(skippedWorkersCacheSize: Int, delayT
           case None =>
             log.info(s"Worker added to skipped workers cache: $requester. Telling worker to request again")
             skippedWorkersCache add SkippedWorkerAndCount(requester, new AtomicInteger(1))
-            requester ! RequestWorkFromScheduler
+            requester ! RequestWorkFromScheduler // TODO add an optional delay timeout to requestworkfromscheduler
         }
       }
     } else {
+      log.info(s"No tasks currently available for requester $requester")
       addToWaitingWorkers(requester)
     }
   }
@@ -130,6 +131,7 @@ object DMLSRandom {
   )
 }
 
+// TODO change to random from last
 // When delay threshold is met and a non local assignment is required:
 // The last task in the queue which does not require a recently used resources is chosen if possible. If no such task
 // exists, then the last task in the queue is used.

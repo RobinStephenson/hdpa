@@ -1,26 +1,36 @@
 package tech.robins
 
+import java.io.File
 import java.util.UUID
 
 import org.eclipse.jgit.api.Git
 import tech.robins.RealTask.WorkResult
-import tech.robins.caching.{HasCacheRemovalHook, UnitCacheRemovalHook}
+import tech.robins.caching.HasCacheRemovalHook
 
 import scala.concurrent.duration._
 
-trait Resource extends HasCacheRemovalHook {
+trait Resource {
   val id: String
 }
 
-case class ImaginaryResource(id: String) extends Resource with UnitCacheRemovalHook
+case class ImaginaryResource(id: String) extends Resource
 
-case class GitHubRepo(fullName: String, localClone: Git) extends Resource {
+case class GitHubRepo(fullName: String, localClone: Git) extends Resource with HasCacheRemovalHook {
   val id: String = fullName
 
-  def onRemovedFromCache(): Unit = localClone.getRepository.getWorkTree.delete()
+  private def deleteDirectory(directory: File): Unit = {
+    Option(directory.listFiles()).foreach(_.foreach(deleteDirectory))
+    directory.delete()
+  }
+
+  def onRemovedFromCache(): Unit = try {
+    deleteDirectory(localClone.getRepository.getWorkTree)
+  } catch {
+    case e: Exception => println(e) // TODO handle. For now, just logging is fine.
+  }
 }
 
-sealed trait Task extends UnitCacheRemovalHook {
+sealed trait Task {
   val id: UUID
   val requiredResourceIds: Set[String]
 }

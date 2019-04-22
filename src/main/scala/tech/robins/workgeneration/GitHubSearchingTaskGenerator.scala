@@ -2,25 +2,29 @@ package tech.robins.workgeneration
 
 import akka.NotUsed
 import akka.actor.Props
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import com.typesafe.config.ConfigFactory
 import tech.robins.GitHubContentSearch.RepoFullName
 import tech.robins._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-// Wrapper for Kohsuke GHRepo class
-class GitHubSearchingTaskGenerator(workGenerationTimeout: Duration = 1.hour)(implicit materializer: ActorMaterializer)
+class GitHubSearchingTaskGenerator(maxNumberOfRepos: Int, searchTerm: String, fileExtension: String, workGenerationTimeout: Duration = 1.hour)(implicit materializer: ActorMaterializer)
     extends AbstractWorkloadGenerator {
   private val gmfGraphRepoSource: Source[RepoFullName, NotUsed] =
-    Source.fromGraph(GitHubContentSearch("figure", "gmfgraph")).throttle(100, 2.minutes)
+    Source
+      .fromGraph(GitHubContentSearch(searchTerm, fileExtension))
+      .throttle(100, 2.minutes) // To prevent hitting the rate limit
+      .take(maxNumberOfRepos)
 
-  private val createTasksFlow: Flow[RepoFullName, RealTask, NotUsed] = Flow[RepoFullName].mapConcat[RealTask](
+  protected def createTasksFlow: Flow[RepoFullName, RealTask, NotUsed] = Flow[RepoFullName].mapConcat[RealTask](
     repoFullName =>
       List(
         GitHubCountCommitAuthorsTask(repoFullName),
-        GitHubCountCommitsByAuthor(repoFullName)
+        GitHubCountCommitsByAuthorTask(repoFullName),
+        GitHubMeanCommitMessageLengthTask(repoFullName)
     )
   )
 
@@ -40,6 +44,11 @@ class GitHubSearchingTaskGenerator(workGenerationTimeout: Duration = 1.hour)(imp
 }
 
 object GitHubSearchingTaskGenerator {
-  def props(workGenConfig: WorkGenerationConfiguration)(implicit materializer: ActorMaterializer): Props =
-    Props(new GitHubSearchingTaskGenerator)
+  def props(workGenConfig: WorkGenerationConfiguration)(implicit materializer: ActorMaterializer): Props = {
+    val gitHubSearchConfig = ConfigFactory.load().getConfig("simulation.workloadGeneration.gitHubSearch")
+    val maxNumberOfReposToGenerateTasksFor = gitHubSearchConfig.getInt("maxNumberOfReposToGenerateTasksFor")
+    val searchTerm = gitHubSearchConfig.getString("searchTerm")
+    val fileExtension = gitHubSearchConfig.getString("fileExtension")
+    Props(new GitHubSearchingTaskGenerator(maxNumberOfReposToGenerateTasksFor, searchTerm, fileExtension))
+  }
 }

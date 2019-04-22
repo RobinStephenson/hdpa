@@ -37,7 +37,7 @@ trait GitHubAnalysisTask extends RealTask {
 
 case class GitHubCountCommitAuthorsTask(id: UUID, repoName: String) extends GitHubAnalysisTask {
   protected def doAnalysis(repo: GitHubRepo): WorkResult = {
-    val numberOfCommitAuthors = repo.localClone
+    val numberOfCommitAuthors: Int = repo.localClone
       .log()
       .call()
       .asScala
@@ -53,9 +53,9 @@ object GitHubCountCommitAuthorsTask {
     GitHubCountCommitAuthorsTask(UUID.randomUUID(), repoName)
 }
 
-case class GitHubCountCommitsByAuthor(id: UUID, repoName: String) extends GitHubAnalysisTask {
+case class GitHubCountCommitsByAuthorTask(id: UUID, repoName: String) extends GitHubAnalysisTask {
   protected def doAnalysis(repo: GitHubRepo): WorkResult = {
-    val commitsPerAuthor = repo.localClone
+    val commitsPerAuthor: Map[String, Int] = repo.localClone
       .log()
       .call()
       .asScala
@@ -68,7 +68,25 @@ case class GitHubCountCommitsByAuthor(id: UUID, repoName: String) extends GitHub
   }
 }
 
-object GitHubCountCommitsByAuthor {
-  def apply(repoName: String): GitHubCountCommitsByAuthor =
-    GitHubCountCommitsByAuthor(UUID.randomUUID(), repoName)
+object GitHubCountCommitsByAuthorTask {
+  def apply(repoName: String): GitHubCountCommitsByAuthorTask =
+    GitHubCountCommitsByAuthorTask(UUID.randomUUID(), repoName)
+}
+
+case class GitHubMeanCommitMessageLengthTask(id: UUID, repoName: String) extends GitHubAnalysisTask {
+  override protected def doAnalysis(repo: GitHubRepo): WorkResult = {
+    val messageLengths = repo.localClone
+      .log()
+      .call()
+      .asScala
+      .map(_.getFullMessage.length)
+    val numberOfCommits = messageLengths.size
+    val meanLength = messageLengths.sum.toDouble / numberOfCommits
+    WorkResult(meanLength)
+  }
+}
+
+object GitHubMeanCommitMessageLengthTask {
+  def apply(repoName: String): GitHubMeanCommitMessageLengthTask =
+    GitHubMeanCommitMessageLengthTask(UUID.randomUUID(), repoName)
 }
