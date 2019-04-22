@@ -10,15 +10,15 @@ import scala.concurrent.duration._
 
 // TODO shut self down when cluster master goes down
 // TODO easy way to start N execution nodes in separate processes
-object SimulationApplicationWorker extends SimulationApplication {
+object SimulationApplicationWorker {
   val roleName = "simulationWorker"
 
-  def main(args: Array[String]): Unit = {
+  def runMain(args: Array[String]): Unit = {
     val roles = Array(roleName)
     val workerConfig =
       ArgsParsing.parser.parse(args, WorkerConfiguration()).getOrElse(throw new IllegalArgumentException())
     // TODO store information about the nodes in the cluster (when they arrived/left, exec units per min, resource cache) in report
-    val tsConfig = getConfig(roles)
+    val tsConfig = SimulationApplication.getConfig(roles)
     val simConfig: SimulationConfiguration = SimulationConfiguration(tsConfig)
     val system = ActorSystem("SimulationSystem", tsConfig)
     val cluster = Cluster(system)

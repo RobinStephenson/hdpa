@@ -5,13 +5,13 @@ import tech.robins.SimulationController.StartSimulation
 
 import scala.io.StdIn
 
-object SimulationApplicationMaster extends SimulationApplication {
+object SimulationApplicationMaster {
   val roleName = "simulationMaster"
 
-  def main(args: Array[String]): Unit = {
+  def runMain(): Unit = {
     val roles = Array(roleName)
     val masterPort = 2551
-    val configWithPort = getConfig(roles, masterPort)
+    val configWithPort = SimulationApplication.getConfig(roles, masterPort)
     val system = ActorSystem("SimulationSystem", configWithPort)
     val materializer = ActorMaterializer()(system)
     val simConfig: SimulationConfiguration = SimulationConfiguration(configWithPort)
