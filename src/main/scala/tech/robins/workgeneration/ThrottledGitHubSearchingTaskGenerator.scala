@@ -10,8 +10,15 @@ import tech.robins.{RealTask, WorkGenerationConfiguration}
 
 import scala.concurrent.duration._
 
-class ThrottledGitHubSearchingTaskGenerator(maxNumberOfRepos: Int, searchTerm: String, fileExtension: String, workGenerationTimeout: Duration = 1.hour)(implicit materializer: ActorMaterializer) extends GitHubSearchingTaskGenerator(maxNumberOfRepos, searchTerm, fileExtension, workGenerationTimeout) {
-  override protected val createTasksFlow: Flow[RepoFullName, RealTask, NotUsed] = super.createTasksFlow.throttle(16, 330.seconds, 8, ThrottleMode.Shaping)
+class ThrottledGitHubSearchingTaskGenerator(
+  maxNumberOfRepos: Int,
+  searchTerm: String,
+  fileExtension: String,
+  workGenerationTimeout: Duration = 1.hour
+)(implicit materializer: ActorMaterializer)
+    extends GitHubSearchingTaskGenerator(maxNumberOfRepos, searchTerm, fileExtension, workGenerationTimeout) {
+  override protected val createTasksFlow: Flow[RepoFullName, RealTask, NotUsed] =
+    super.createTasksFlow.throttle(16, 330.seconds, 8, ThrottleMode.Shaping)
 }
 
 object ThrottledGitHubSearchingTaskGenerator {
@@ -20,6 +27,6 @@ object ThrottledGitHubSearchingTaskGenerator {
     val maxNumberOfReposToGenerateTasksFor = gitHubSearchConfig.getInt("maxNumberOfReposToGenerateTasksFor")
     val searchTerm = gitHubSearchConfig.getString("searchTerm")
     val fileExtension = gitHubSearchConfig.getString("fileExtension")
-    Props(new GitHubSearchingTaskGenerator(maxNumberOfReposToGenerateTasksFor, searchTerm, fileExtension))
+    Props(new ThrottledGitHubSearchingTaskGenerator(maxNumberOfReposToGenerateTasksFor, searchTerm, fileExtension))
   }
 }
