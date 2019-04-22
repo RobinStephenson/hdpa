@@ -18,7 +18,7 @@ class ThrottledGitHubSearchingTaskGenerator(
 )(implicit materializer: ActorMaterializer)
     extends GitHubSearchingTaskGenerator(maxNumberOfRepos, searchTerm, fileExtension, workGenerationTimeout) {
   override protected val createTasksFlow: Flow[RepoFullName, RealTask, NotUsed] =
-    super.createTasksFlow.throttle(16, 330.seconds, 8, ThrottleMode.Shaping)
+    super.createTasksFlow.throttle(16, 270.seconds, 8, ThrottleMode.Shaping)
 }
 
 object ThrottledGitHubSearchingTaskGenerator {
