@@ -131,10 +131,6 @@ object DMLSRandom {
   )
 }
 
-// TODO change to random from last
-// When delay threshold is met and a non local assignment is required:
-// The last task in the queue which does not require a recently used resources is chosen if possible. If no such task
-// exists, then the last task in the queue is used.
 class DMLSRecentResourceCache(recentResourceIdCacheSize: Int, skippedWorkersCacheSize: Int, delayThreshold: Int)
     extends DelayingMaxLocalityScheduler(skippedWorkersCacheSize, delayThreshold) {
   require(recentResourceIdCacheSize >= 1)
@@ -151,7 +147,7 @@ class DMLSRecentResourceCache(recentResourceIdCacheSize: Int, skippedWorkersCach
       task => recentResourceIdCache.exists(recentResourceId => task.requiredResourceIds.contains(recentResourceId))
     )
     if (tasksWithoutRecentlyUsedResources.nonEmpty)
-      tasksWithoutRecentlyUsedResources.last
+      tasksWithoutRecentlyUsedResources.head
     else
       taskQueue.last
   }
